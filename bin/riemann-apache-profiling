@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+require 'pp'
+
+# Gathers mysql STATUS and submits them to Riemann.
+
+require 'riemann/tools'
+
+class Riemann::Tools::ApacheProfiling
+  include Riemann::Tools
+
+
+  def initialize
+
+  end
+
+  def tick
+    while IO.select([STDIN],[],[],0)
+      line = STDIN.readline
+      
+      regex = /\[(\d\d\/\w+\/\d\d\d\d:\d\d:\d\d:\d\d\s\+\d\d\d\d)\]\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)/
+      matches = regex.match(line)
+      data = {
+        :service => "apache-profiling req microseconds",
+        :description => matches[6]+matches[7],
+        :metric => matches[3],
+        :handler => matches[5],
+        :tags => ["apache-profiling"]
+      }
+      report(data)
+      data = {
+        :service => "apache-profiling req bytes",
+        :description => matches[6]+matches[7],
+        :metric => matches[4],
+        :handler => matches[5],
+        :tags => ["apache-profiling"]
+      }
+      report(data)
+
+    end
+    
+  end
+
+end
+
+Riemann::Tools::ApacheProfiling.run
